@@ -2,22 +2,21 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~>6.54.0"
+      version = "~> 6.54.0"
     }
-    # The 'null' provider was removed as we are now using the native 'terraform_data'
   }
 }
 
 provider "aws" {
-  access_key = "mock_access_key"
-  secret_key = "mock_secret_key"
-  region     = "us-east-1"
+  access_key = "test"
+  secret_key = "test"
+  region     = var.aws_region
 
   # Global tags applied automatically to all supported resources
   default_tags {
     tags = {
-      Environment = "Local"
-      Project     = "ImageProcessor"
+      Environment = var.environment
+      Project     = var.project_name
       ManagedBy   = "Terraform"
     }
   }
@@ -37,5 +36,8 @@ provider "aws" {
     iam            = var.localstack_endpoint
     sts            = var.localstack_endpoint
     ecr            = var.localstack_endpoint
+    ec2            = var.localstack_endpoint
+    logs           = var.localstack_endpoint
+    cloudwatch     = var.localstack_endpoint
   }
 }
