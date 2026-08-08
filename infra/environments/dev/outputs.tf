@@ -1,9 +1,53 @@
 output "api_url" {
+  type        = string
+  description = "The invocation URL of the API endpoint."
   value       = module.api.api_url
-  description = "Generated local URL to send images (POST)"
 }
 
 output "api_id" {
+  type        = string
+  description = "The ID of the REST API Gateway."
   value       = module.api.api_id
-  description = "The ID of the REST API Gateway"
+}
+
+output "s3_bucket_name" {
+  type        = string
+  description = "The unique name of the S3 bucket created for image storage."
+  value       = module.storage.bucket_id
+}
+
+output "s3_bucket_arn" {
+  type        = string
+  description = "The ARN of the S3 bucket."
+  value       = module.storage.bucket_arn
+}
+
+output "dynamodb_table_name" {
+  type        = string
+  description = "The name of the DynamoDB metadata table."
+  value       = module.storage.dynamodb_table_name
+}
+
+output "dynamodb_table_arn" {
+  type        = string
+  description = "The ARN of the DynamoDB metadata table."
+  value       = module.storage.dynamodb_table_arn
+}
+
+output "ecr_repository_url" {
+  type        = string
+  description = "The registry URL of the Lambda ECR repository."
+  value       = module.compute.ecr_repository_url
+}
+
+output "lambda_function_name" {
+  type        = string
+  description = "Name of the provisioned Lambda function."
+  value       = module.compute.lambda_function_name
+}
+
+output "vpc_id" {
+  type        = string
+  description = "ID of the dynamically resolved default VPC."
+  value       = data.aws_vpc.default.id
 }
