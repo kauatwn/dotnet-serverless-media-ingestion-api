@@ -35,7 +35,7 @@ jobs:
       - name: Terraform Apply (Target ECR)
         run: |
           terraform apply \
-            -target="module.compute.aws_ecr_repository.lambda_repo" \
+            -target="module.compute.aws_ecr_repository.this" \
             -var="localstack_endpoint=${{ env.LOCALSTACK_ENDPOINT }}" \
             -auto-approve
         working-directory: infra/environments/dev
