@@ -1,77 +1,25 @@
-# CloudWatch Log Group for Lambda
-resource "aws_cloudwatch_log_group" "lambda_log_group" {
-  name              = "/aws/lambda/ImageProcessorLambdaUploadImage"
-  retention_in_days = 7
-}
-
-# IAM Role - Trust Policy for Lambda
-resource "aws_iam_role" "lambda_execution_role" {
-  name = "image-processor-lambda-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action    = "sts:AssumeRole"
-        Effect    = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# IAM Policy - Least Privilege Permissions
-# Defines exact permissions for the Lambda function
-resource "aws_iam_role_policy" "lambda_permissions" {
-  name = "image-processor-lambda-permissions"
-  role = aws_iam_role.lambda_execution_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        # Permissions to write to the explicit log group
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "${aws_cloudwatch_log_group.lambda_log_group.arn}:*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject"
-        ]
-        Resource = "${var.bucket_arn}/*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "dynamodb:PutItem"
-        ]
-        Resource = var.dynamodb_table_arn
-      }
-    ]
-  })
-}
-
-# Amazon ECR - Private Container Registry
-resource "aws_ecr_repository" "lambda_repo" {
-  name                 = "image-processor-lambda"
+# Amazon ECR Repository for Lambda container images
+resource "aws_ecr_repository" "this" {
+  name                 = var.ecr_repository_name
   image_tag_mutability = "MUTABLE"
 
-  # Disabled to speed up local deployments via LocalStack
   image_scanning_configuration {
     scan_on_push = false
   }
+
+  tags = merge(
+    {
+      Component   = "Compute"
+      Environment = var.environment
+      Name        = var.ecr_repository_name
+    },
+    var.tags
+  )
 }
 
-# Amazon ECR - Lifecycle Policy (Keep only the 5 most recent untagged images)
-resource "aws_ecr_lifecycle_policy" "lambda_repo_policy" {
-  repository = aws_ecr_repository.lambda_repo.name
+# ECR Lifecycle Policy (Keep last 5 untagged images)
+resource "aws_ecr_lifecycle_policy" "this" {
+  repository = aws_ecr_repository.this.name
 
   policy = jsonencode({
     rules = [{
@@ -89,19 +37,97 @@ resource "aws_ecr_lifecycle_policy" "lambda_repo_policy" {
   })
 }
 
+# CloudWatch Log Group for Lambda
+resource "aws_cloudwatch_log_group" "this" {
+  name              = "/aws/lambda/${var.function_name}"
+  retention_in_days = 7
+
+  tags = merge(
+    {
+      Component   = "Compute"
+      Environment = var.environment
+    },
+    var.tags
+  )
+}
+
+# IAM Execution Role for Lambda
+resource "aws_iam_role" "this" {
+  name = "${var.function_name}-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = merge(
+    {
+      Component   = "Compute"
+      Environment = var.environment
+    },
+    var.tags
+  )
+}
+
+# IAM Least Privilege Policy for Lambda
+resource "aws_iam_role_policy" "this" {
+  name = "${var.function_name}-permissions"
+  role = aws_iam_role.this.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.this.arn}:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ]
+        Resource = "${var.bucket_arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem"
+        ]
+        Resource = [
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}/index/*"
+        ]
+      }
+    ]
+  })
+}
+
 # AWS Lambda Function (Container Image)
-resource "aws_lambda_function" "image_processor_lambda_upload_image" {
-  function_name = "ImageProcessorLambdaUploadImage"
-  role          = aws_iam_role.lambda_execution_role.arn
+resource "aws_lambda_function" "this" {
+  function_name = var.function_name
+  role          = aws_iam_role.this.arn
   architectures = [var.lambda_architecture]
 
-  # Container specific configurations using dynamic image tags from CI/CD
   package_type = "Image"
-  image_uri    = "${aws_ecr_repository.lambda_repo.repository_url}:${var.image_tag}"
+  image_uri    = "${aws_ecr_repository.this.repository_url}:${var.image_tag}"
 
-  # Performance configurations explicitly defined
-  memory_size = 512
-  timeout     = 15
+  memory_size = var.memory_size
+  timeout     = var.timeout
 
   environment {
     variables = {
@@ -110,7 +136,16 @@ resource "aws_lambda_function" "image_processor_lambda_upload_image" {
     }
   }
 
+  tags = merge(
+    {
+      Component   = "Compute"
+      Environment = var.environment
+      Name        = var.function_name
+    },
+    var.tags
+  )
+
   depends_on = [
-    aws_cloudwatch_log_group.lambda_log_group
+    aws_cloudwatch_log_group.this
   ]
 }
