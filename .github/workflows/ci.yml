@@ -9,7 +9,9 @@ jobs:
     name: Code Validation & Docker Check
     runs-on: ubuntu-24.04
     env:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
       IMAGE_TAG: ${{ github.sha }}
+      COVERAGE_ARGS: '--collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover'
 
     steps:
       - name: Checkout code
@@ -27,7 +29,10 @@ jobs:
         run: dotnet build ImageProcessor.slnx --no-restore --configuration Release
 
       - name: Run Unit Tests
-        run: dotnet test tests/ImageProcessor.UnitTests/ImageProcessor.UnitTests.csproj --no-build --configuration Release
+        run: dotnet test tests/ImageProcessor.UnitTests/ImageProcessor.UnitTests.csproj --no-build --configuration Release --filter "Category=Unit" ${{ env.COVERAGE_ARGS }}
+
+      - name: Run Integration Tests
+        run: dotnet test tests/ImageProcessor.IntegrationTests/ImageProcessor.IntegrationTests.csproj --no-build --configuration Release --filter "Category=Integration" ${{ env.COVERAGE_ARGS }}
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
