@@ -1,15 +1,29 @@
-output "bucket_name" {
-  value = aws_s3_bucket.image_bucket.bucket
+output "bucket_id" {
+  type        = string
+  description = "The name (ID) of the S3 bucket."
+  value       = aws_s3_bucket.this.id
 }
 
 output "bucket_arn" {
-  value = aws_s3_bucket.image_bucket.arn
+  type        = string
+  description = "The ARN of the S3 bucket."
+  value       = aws_s3_bucket.this.arn
+}
+
+output "bucket_domain_name" {
+  type        = string
+  description = "The bucket domain name."
+  value       = aws_s3_bucket.this.bucket_domain_name
 }
 
 output "dynamodb_table_name" {
-  value = aws_dynamodb_table.image_metadata_table.name
+  type        = string
+  description = "The name of the DynamoDB metadata table."
+  value       = aws_dynamodb_table.this.name
 }
 
 output "dynamodb_table_arn" {
-  value = aws_dynamodb_table.image_metadata_table.arn
+  type        = string
+  description = "The ARN of the DynamoDB metadata table."
+  value       = aws_dynamodb_table.this.arn
 }
