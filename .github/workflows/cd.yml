@@ -1,4 +1,4 @@
-name: LocalStack Deployment (Dev)
+name: "LocalStack Deployment (Dev)"
 
 on:
   workflow_dispatch:
@@ -7,32 +7,36 @@ on:
 
 jobs:
   deploy-infra:
-    name: Provision Infrastructure
+    name: "Provision Infrastructure"
     runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      actions: read
+
     env:
       LOCALSTACK_ENDPOINT: "http://127.0.0.1:4566"
       IMAGE_TAG: ${{ github.sha }}
 
     steps:
-      - name: Checkout code
+      - name: "Checkout code 🛎️"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Start LocalStack
+      - name: "Start LocalStack 🐳"
         uses: LocalStack/setup-localstack@7c8a0cb3405bc58be4c8f763f812aa000bc46303 # v0.3.2
         with:
           image-tag: "2026.06.0"
-          install-awslocal: "true"
         env:
           LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
 
-      - name: Setup Terraform
+      - name: "Setup Terraform 🛠️"
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
 
-      - name: Terraform Init
+      - name: "Terraform Init 🚀"
         run: terraform init -upgrade
         working-directory: infra/environments/dev
 
-      - name: Terraform Apply (Target ECR)
+      - name: "Terraform Apply (Target ECR) 🏗️"
         run: |
           terraform apply \
             -target="module.compute.aws_ecr_repository.this" \
@@ -40,33 +44,33 @@ jobs:
             -auto-approve
         working-directory: infra/environments/dev
 
-      - name: Setup Docker Buildx
+      - name: "Setup Docker Buildx 🐳"
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
         with:
           # Allows Docker Buildx to access the localhost network (LocalStack)
           driver-opts: network=host
 
-      - name: Get ECR Repository URL
+      - name: "Get ECR Repository URL 🔗"
         id: get-ecr-url
         run: |
           ECR_URL=$(terraform output -raw ecr_repository_url)
-          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"
         working-directory: infra/environments/dev
 
-      - name: Build and Push Docker Image
+      - name: "Build and Push Docker Image 📦"
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: src/MediaIngestionApi.Lambda.UploadImage/Dockerfile
           push: true
           # Note: Caching is removed here because this workflow runs on merge to main,
-          # leveraging the cache pre-built by the CI workflow (Continuous Integration).
+          # leveraging the cache pre-built by the CI workflow.
           tags: ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ env.IMAGE_TAG }}
           platforms: linux/amd64
           # Imports the cache using the shared scope created by the CI workflow
           cache-from: type=gha,scope=lambda-aot-build
 
-      - name: Terraform Apply (Full Infrastructure)
+      - name: "Terraform Apply (Full Infrastructure) 🏗️"
         run: |
           terraform apply \
             -var="localstack_endpoint=${{ env.LOCALSTACK_ENDPOINT }}" \
@@ -75,16 +79,14 @@ jobs:
             -auto-approve
         working-directory: infra/environments/dev
 
-      # Post-deployment stabilization & E2E validation (Smoke Test)
-      - name: Wait for Infrastructure Stabilization
+      - name: "Wait for Infrastructure Stabilization ⏳"
         # Gives LocalStack a brief moment to internally route API Gateway to the Lambda container.
         run: sleep 5
 
-      - name: Run E2E Smoke Test (curl)
+      - name: "Run E2E Smoke Test (curl) 🧪"
         run: |
           API_ID=$(terraform output -raw api_id)
 
-          # Correção fundamental: Usar o stage "local" ao invés de "\$default"
           LOCALSTACK_URL="$LOCALSTACK_ENDPOINT/_aws/execute-api/$API_ID/local/images"
 
           RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$LOCALSTACK_URL" \

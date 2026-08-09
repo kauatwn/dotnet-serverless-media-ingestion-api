@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: "Continuous Integration"
 
 on:
   pull_request:
@@ -6,41 +6,41 @@ on:
 
 jobs:
   build-and-test:
-    name: Code Validation & Docker Check
+    name: "Code Validation & Docker Check"
     runs-on: ubuntu-24.04
+
     env:
-      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
       IMAGE_TAG: ${{ github.sha }}
       COVERAGE_ARGS: '--collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover'
 
     steps:
-      - name: Checkout code
+      - name: "Checkout code 🛎️"
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Setup .NET
+      - name: "Setup .NET 🟣"
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
 
-      - name: Restore dependencies
+      - name: "Restore dependencies 📦"
         run: dotnet restore MediaIngestionApi.slnx
 
-      - name: Build Solution
+      - name: "Build Solution 🔨"
         run: dotnet build MediaIngestionApi.slnx --no-restore --configuration Release
 
-      - name: Run Unit Tests
+      - name: "Run Unit Tests 🧪"
         run: dotnet test tests/MediaIngestionApi.UnitTests/MediaIngestionApi.UnitTests.csproj --no-build --configuration Release --filter "Category=Unit" ${{ env.COVERAGE_ARGS }}
 
-      - name: Run Integration Tests
+      - name: "Run Integration Tests 🔗"
         run: dotnet test tests/MediaIngestionApi.IntegrationTests/MediaIngestionApi.IntegrationTests.csproj --no-build --configuration Release --filter "Category=Integration" ${{ env.COVERAGE_ARGS }}
 
-      - name: Setup Docker Buildx
+      - name: "Setup Docker Buildx 🐳"
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
         with:
           # Allows Docker Buildx to access the localhost network (LocalStack)
           driver-opts: network=host
 
-      - name: Docker Build Check (Dry Run)
+      - name: "Docker Build Check (Dry Run) 🏗️"
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
