@@ -1,4 +1,4 @@
-# Serverless Image Processor (Native AOT)
+# Serverless Native AOT Media Ingestion API
 
 ## 1. O Problema e o Domínio
 
