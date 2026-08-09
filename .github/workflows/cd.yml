@@ -46,6 +46,13 @@ jobs:
           # Allows Docker Buildx to access the localhost network (LocalStack)
           driver-opts: network=host
 
+      - name: Get ECR Repository URL
+        id: get-ecr-url
+        run: |
+          ECR_URL=$(terraform output -raw ecr_repository_url)
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+        working-directory: infra/environments/dev
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
@@ -54,7 +61,7 @@ jobs:
           push: true
           # Note: Caching is removed here because this workflow runs on merge to main,
           # leveraging the cache pre-built by the CI workflow (Continuous Integration).
-          tags: 000000000000.dkr.ecr.us-east-1.localhost.localstack.cloud:4566/image-processor-lambda:${{ env.IMAGE_TAG }}
+          tags: ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ env.IMAGE_TAG }}
           platforms: linux/amd64
           # Imports the cache using the shared scope created by the CI workflow
           cache-from: type=gha,scope=lambda-aot-build
