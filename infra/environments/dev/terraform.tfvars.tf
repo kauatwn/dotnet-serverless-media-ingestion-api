@@ -1,0 +1,11 @@
+aws_region          = "us-east-1"
+environment         = "dev"
+project_name        = "mediaingestionapi"
+localstack_endpoint = "http://127.0.0.1:4566"
+lambda_architecture = "x86_64"
+image_tag           = "latest"
+
+lambda_config = {
+  memory_size = 512
+  timeout     = 15
+}
