@@ -46,7 +46,7 @@ jobs:
           context: .
           file: src/MediaIngestionApi.Lambda.UploadImage/Dockerfile
           push: false
-          tags: image-processor-lambda:${{ env.IMAGE_TAG }}
+          tags: media-ingestion-api:${{ env.IMAGE_TAG }}
           platforms: linux/amd64
           # Defines a shared scope so the CD workflow can find this cache
           cache-from: type=gha,scope=lambda-aot-build
