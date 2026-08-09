@@ -22,7 +22,7 @@ variable "environment" {
 
 variable "project_name" {
   type        = string
-  default     = "imageprocessor"
+  default     = "mediaingestionapi"
   description = "Short identifier for the project used in resource naming and tags."
 
   validation {
