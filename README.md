@@ -36,11 +36,13 @@ The choice of components focuses on cost predictability and operational simplici
 
 ## 5. Infrastructure as Code
 
-The provisioning and lifecycle of the environment are managed in a 100% declarative manner using **Terraform**. The repository adopts the **Pure Modules** structural pattern, ensuring reusability, isolated testing, and high maintainability:
+The provisioning and lifecycle of the environment are managed in a 100% declarative manner using **Terraform**. The repository adopts the **Pure Modules** structural pattern segregated by AWS service, ensuring reusability, isolated testing, and high maintainability:
 
-- **Storage Module:** Centralizes the S3 bucket (with active AES256 encryption and explicit public access block policies - `public_access_block`) and the structured DynamoDB table.
-- **Compute Module:** Manages the private ECR repository with lifecycle policies (to purge old build images), the creation of the Lambda function, and its respective execution roles.
-- **API Module:** Configures the exposed HTTP mesh of the API Gateway, mapping methods, resources, and cross-invocation permissions (`lambda_permission`).
+- **S3 Module (`modules/s3`):** Manages the S3 bucket with active AES256 server-side encryption and explicit public access block policies (`public_access_block`).
+- **DynamoDB Module (`modules/dynamodb`):** Provisions the structured DynamoDB table with on-demand capacity (Pay-Per-Request) and Point-in-Time Recovery.
+- **ECR Module (`modules/ecr`):** Manages the private Elastic Container Registry (ECR) repository with automated lifecycle policies to purge obsolete images.
+- **Lambda Module (`modules/lambda`):** Provisions the containerized Lambda function, its CloudWatch Log Group, execution role, and least-privilege IAM policies.
+- **API Gateway Module (`modules/apigateway`):** Configures the exposed HTTP mesh of the REST API Gateway, mapping resources (`/images`), POST method integration (`AWS_PROXY`), stages, and Lambda invocation permissions.
 
 ## 6. Known Limitations and Trade-offs
 
