@@ -3,20 +3,24 @@ name: "LocalStack Deployment (Dev)"
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  AWS_ACCESS_KEY_ID: "test"
+  AWS_SECRET_ACCESS_KEY: "test"
+  AWS_DEFAULT_REGION: "us-east-1"
+  AWS_PAGER: ""
+  LOCALSTACK_ENDPOINT: "http://127.0.0.1:4566"
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  deploy-infra:
-    name: "Provision Infrastructure"
+  deploy:
+    name: "Provision Infrastructure & Deploy"
     runs-on: ubuntu-24.04
-
-    permissions:
-      contents: read
-      actions: read
-
-    env:
-      LOCALSTACK_ENDPOINT: "http://127.0.0.1:4566"
-      IMAGE_TAG: ${{ github.sha }}
 
     steps:
       - name: "Checkout code 🛎️"
@@ -32,17 +36,35 @@ jobs:
       - name: "Setup Terraform 🛠️"
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
 
-      - name: "Terraform Init 🚀"
-        run: terraform init -upgrade
+      - name: "Terraform Format Check 🧹"
         working-directory: infra/environments/dev
+        run: terraform fmt -check
+
+      - name: "Terraform Init 🚀"
+        working-directory: infra/environments/dev
+        run: terraform init -upgrade
+
+      - name: "Terraform Validate ✅"
+        working-directory: infra/environments/dev
+        run: terraform validate
+
+      - name: "Terraform Plan (Target ECR) 📋"
+        working-directory: infra/environments/dev
+        run: |
+          terraform plan \
+            -target="module.ecr.aws_ecr_repository.this" \
+            -var="localstack_endpoint=${{ env.LOCALSTACK_ENDPOINT }}" \
+            -out=tfplan-ecr
 
       - name: "Terraform Apply (Target ECR) 🏗️"
-        run: |
-          terraform apply \
-            -target="module.compute.aws_ecr_repository.this" \
-            -var="localstack_endpoint=${{ env.LOCALSTACK_ENDPOINT }}" \
-            -auto-approve
         working-directory: infra/environments/dev
+        run: terraform apply -input=false tfplan-ecr
+
+      - name: "Export ECR Outputs 📤"
+        id: ecr-outputs
+        working-directory: infra/environments/dev
+        run: |
+          echo "ecr_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
 
       - name: "Setup Docker Buildx 🐳"
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
@@ -50,48 +72,61 @@ jobs:
           # Allows Docker Buildx to access the localhost network (LocalStack)
           driver-opts: network=host
 
-      - name: "Get ECR Repository URL 🔗"
-        id: get-ecr-url
-        run: |
-          ECR_URL=$(terraform output -raw ecr_repository_url)
-          echo "ecr_url=$ECR_URL" >> "$GITHUB_OUTPUT"
-        working-directory: infra/environments/dev
-
       - name: "Build and Push Docker Image 📦"
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: src/MediaIngestionApi.Lambda.UploadImage/Dockerfile
           push: true
-          # Note: Caching is removed here because this workflow runs on merge to main,
-          # leveraging the cache pre-built by the CI workflow.
-          tags: ${{ steps.get-ecr-url.outputs.ecr_url }}:${{ env.IMAGE_TAG }}
+          # Leveraging the cache pre-built by the CI workflow and pushing sha + latest tags
+          tags: |
+            ${{ steps.ecr-outputs.outputs.ecr_url }}:${{ env.IMAGE_TAG }}
+            ${{ steps.ecr-outputs.outputs.ecr_url }}:latest
           platforms: linux/amd64
           # Imports the cache using the shared scope created by the CI workflow
           cache-from: type=gha,scope=lambda-aot-build
 
-      - name: "Terraform Apply (Full Infrastructure) 🏗️"
+      - name: "Terraform Plan (Full Infrastructure) 📋"
+        working-directory: infra/environments/dev
         run: |
-          terraform apply \
+          terraform plan \
             -var="localstack_endpoint=${{ env.LOCALSTACK_ENDPOINT }}" \
             -var="lambda_architecture=x86_64" \
             -var="image_tag=${{ env.IMAGE_TAG }}" \
-            -auto-approve
+            -out=tfplan-full
+
+      - name: "Terraform Apply (Full Infrastructure) 🏗️"
         working-directory: infra/environments/dev
+        run: terraform apply -input=false tfplan-full
+
+      - name: "Export Infrastructure Outputs 📤"
+        id: infra-outputs
+        working-directory: infra/environments/dev
+        run: |
+          echo "api_id=$(terraform output -raw api_id)" >> "$GITHUB_OUTPUT"
+          echo "api_url=$(terraform output -raw api_url)" >> "$GITHUB_OUTPUT"
+          echo "function_name=$(terraform output -raw lambda_function_name)" >> "$GITHUB_OUTPUT"
 
       - name: "Wait for Infrastructure Stabilization ⏳"
-        # Gives LocalStack a brief moment to internally route API Gateway to the Lambda container.
-        run: sleep 5
+        run: |
+          echo "Checking Lambda function readiness..."
+          aws --endpoint-url="$LOCALSTACK_ENDPOINT" lambda wait function-active-v2 \
+            --function-name "${{ steps.infra-outputs.outputs.function_name }}" || sleep 5
 
       - name: "Run E2E Smoke Test (curl) 🧪"
         run: |
-          API_ID=$(terraform output -raw api_id)
-
+          API_ID="${{ steps.infra-outputs.outputs.api_id }}"
           LOCALSTACK_URL="$LOCALSTACK_ENDPOINT/_aws/execute-api/$API_ID/local/images"
+          echo "--- Smoke testing API Gateway at $LOCALSTACK_URL ---"
 
-          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$LOCALSTACK_URL" \
+          RESPONSE=$(curl --retry 10 \
+            --retry-delay 3 \
+            --retry-connrefused \
+            -sS \
+            -w "\n%{http_code}" \
+            -X POST "$LOCALSTACK_URL" \
             -H "Content-Type: application/json" \
-            -d '{"FileName":"github_action.png","ContentType":"image/png","Base64Image":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="}')
+            -d '{"FileName":"ci_smoke_test.png","ContentType":"image/png","Base64Image":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="}')
 
           BODY=$(echo "$RESPONSE" | head -n -1)
           STATUS=$(echo "$RESPONSE" | tail -n1)
