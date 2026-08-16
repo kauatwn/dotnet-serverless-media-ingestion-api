@@ -10,19 +10,30 @@
     <File Path="infra\environments\dev\variables.tf" />
   </Folder>
   <Folder Name="/infra/modules/" />
-  <Folder Name="/infra/modules/api/">
-    <File Path="infra\modules\api\main.tf" />
-    <File Path="infra\modules\api\outputs.tf" />
-    <File Path="infra\modules\api\variables.tf" />
+  <Folder Name="/infra/modules/apigateway/">
+    <File Path="infra\modules\apigateway\main.tf" />
+    <File Path="infra\modules\apigateway\outputs.tf" />
+    <File Path="infra\modules\apigateway\variables.tf" />
   </Folder>
-  <Folder Name="/infra/modules/compute/">
-    <File Path="infra\modules\compute\main.tf" />
-    <File Path="infra\modules\compute\outputs.tf" />
-    <File Path="infra\modules\compute\variables.tf" />
+  <Folder Name="/infra/modules/dynamodb/">
+    <File Path="infra\modules\dynamodb\main.tf" />
+    <File Path="infra\modules\dynamodb\outputs.tf" />
+    <File Path="infra\modules\dynamodb\variables.tf" />
   </Folder>
-  <Folder Name="/infra/modules/storage/">
-    <File Path="infra\modules\storage\main.tf" />
-    <File Path="infra\modules\storage\outputs.tf" />
+  <Folder Name="/infra/modules/ecr/">
+    <File Path="infra\modules\ecr\main.tf" />
+    <File Path="infra\modules\ecr\outputs.tf" />
+    <File Path="infra\modules\ecr\variables.tf" />
+  </Folder>
+  <Folder Name="/infra/modules/lambda/">
+    <File Path="infra\modules\lambda\main.tf" />
+    <File Path="infra\modules\lambda\outputs.tf" />
+    <File Path="infra\modules\lambda\variables.tf" />
+  </Folder>
+  <Folder Name="/infra/modules/s3/">
+    <File Path="infra\modules\s3\main.tf" />
+    <File Path="infra\modules\s3\outputs.tf" />
+    <File Path="infra\modules\s3\variables.tf" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src\MediaIngestionApi.Core\MediaIngestionApi.Core.csproj" />
