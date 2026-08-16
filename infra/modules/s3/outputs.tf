@@ -15,15 +15,3 @@ output "bucket_domain_name" {
   description = "The bucket domain name."
   value       = aws_s3_bucket.this.bucket_domain_name
 }
-
-output "dynamodb_table_name" {
-  type        = string
-  description = "The name of the DynamoDB metadata table."
-  value       = aws_dynamodb_table.this.name
-}
-
-output "dynamodb_table_arn" {
-  type        = string
-  description = "The ARN of the DynamoDB metadata table."
-  value       = aws_dynamodb_table.this.arn
-}

@@ -8,16 +8,6 @@ variable "bucket_name" {
   }
 }
 
-variable "dynamodb_table_name" {
-  type        = string
-  description = "The name of the DynamoDB metadata table."
-
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9_.-]{3,255}$", var.dynamodb_table_name))
-    error_message = "The dynamodb_table_name must be between 3 and 255 characters and contain only letters, numbers, hyphens, underscores, or dots."
-  }
-}
-
 variable "environment" {
   type        = string
   description = "Target deployment environment (e.g., dev, staging, prod)."
