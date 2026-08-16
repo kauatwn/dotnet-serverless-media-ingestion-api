@@ -1,15 +1,3 @@
-output "ecr_repository_url" {
-  type        = string
-  description = "The repository URL of the ECR repository."
-  value       = aws_ecr_repository.this.repository_url
-}
-
-output "ecr_repository_name" {
-  type        = string
-  description = "The name of the ECR repository."
-  value       = aws_ecr_repository.this.name
-}
-
 output "lambda_function_name" {
   type        = string
   description = "The function name of the Lambda function."

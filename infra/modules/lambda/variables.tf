@@ -8,13 +8,13 @@ variable "function_name" {
   }
 }
 
-variable "ecr_repository_name" {
+variable "ecr_repository_url" {
   type        = string
-  description = "Name of the ECR repository for Lambda container image."
+  description = "The repository URL of the ECR repository."
 
   validation {
-    condition     = can(regex("^[a-z0-9][a-z0-9._/-]{1,254}$", var.ecr_repository_name))
-    error_message = "The ecr_repository_name must be a valid ECR repository name (lowercase alphanumeric characters, hyphens, underscores, periods, and forward slashes)."
+    condition     = length(trimspace(var.ecr_repository_url)) > 0
+    error_message = "The ecr_repository_url must not be empty."
   }
 }
 
