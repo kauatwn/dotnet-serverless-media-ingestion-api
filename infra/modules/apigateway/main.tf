@@ -9,7 +9,7 @@ resource "aws_api_gateway_rest_api" "this" {
 
   tags = merge(
     {
-      Component   = "API"
+      Component   = "APIGateway"
       Environment = var.environment
       Name        = var.api_name
     },
@@ -82,7 +82,7 @@ resource "aws_api_gateway_stage" "this" {
 
   tags = merge(
     {
-      Component   = "API"
+      Component   = "APIGateway"
       Environment = var.environment
       Name        = "${var.api_name}-${var.stage_name}"
     },
