@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     env:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
       IMAGE_TAG: ${{ github.sha }}
       COVERAGE_ARGS: '--collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover'
 
