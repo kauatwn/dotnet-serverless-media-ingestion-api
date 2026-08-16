@@ -36,11 +36,13 @@ A escolha dos componentes foca em previsibilidade de custo e simplicidade operac
 
 ## 5. A Infraestrutura como Código
 
-O provisionamento e o ciclo de vida do ambiente são gerenciados de forma 100% declarativa através do **Terraform**. O repositório adota o padrão estrutural de **Módulos Puros (Pure Modules)**, garantindo reutilização, testes isolados e alta manutenibilidade:
+O provisionamento e o ciclo de vida do ambiente são gerenciados de forma 100% declarativa através do **Terraform**. O repositório adota o padrão estrutural de **Módulos Puros (Pure Modules)** segregados por serviço da AWS, garantindo reutilização, testes isolados e alta manutenibilidade:
 
-- **Módulo de Storage:** Centraliza o bucket S3 (com criptografia ativa AES256 e políticas explícitas de bloqueio de acesso público - `public_access_block`) e a tabela estruturada do DynamoDB.
-- **Módulo de Compute:** Gerencia o repositório privado do ECR com políticas de ciclo de vida (para expurgar imagens antigas de build), a criação da função Lambda e suas respectivas roles de execução.
-- **Módulo de API:** Configura a malha HTTP exposta do API Gateway, mapeando métodos, recursos e permissões de invocação (`lambda_permission`) cruzadas.
+- **Módulo S3 (`modules/s3`):** Gerencia o bucket S3 com criptografia ativa SSE-S3 (AES256) e políticas explícitas de bloqueio de acesso público (`public_access_block`).
+- **Módulo DynamoDB (`modules/dynamodb`):** Provisiona a tabela DynamoDB com modo sob demanda (Pay-Per-Request) e Point-in-Time Recovery.
+- **Módulo ECR (`modules/ecr`):** Gerencia o repositório privado no Amazon ECR com políticas de ciclo de vida para expurgo automático de imagens antigas.
+- **Módulo Lambda (`modules/lambda`):** Provisiona a função Lambda em contêiner, o CloudWatch Log Group, a role de execução e as políticas de menor privilégio no IAM.
+- **Módulo API Gateway (`modules/apigateway`):** Configura a malha HTTP exposta do REST API Gateway, mapeando recursos (`/images`), integração do método POST (`AWS_PROXY`), stages e permissões de invocação cruzadas (`lambda_permission`).
 
 ## 6. Limitações Conhecidas e Trade-offs
 
