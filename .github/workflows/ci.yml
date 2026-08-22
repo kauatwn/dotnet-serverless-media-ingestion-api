@@ -3,42 +3,175 @@ name: "Continuous Integration"
 on:
   pull_request:
     branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  build-and-test:
-    name: "Code Validation & Docker Check"
+  lint-dotnet:
+    name: "Check .NET Formatting"
     runs-on: ubuntu-24.04
-
-    env:
-      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
-      IMAGE_TAG: ${{ github.sha }}
-      COVERAGE_ARGS: '--collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover'
+    timeout-minutes: 10
 
     steps:
       - name: "Checkout code 🛎️"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "Setup .NET 🟣"
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: "Check Format 🎨"
+        run: dotnet format MediaIngestionApi.slnx --verify-no-changes --verbosity diagnostic
+
+  lint-terraform:
+    name: "Validate Terraform IaC"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: "Checkout code 🛎️"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Setup Terraform 🌍"
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+
+      - name: "Check Terraform Formatting 📐"
+        run: terraform fmt -check -recursive infra/
+
+      - name: "Validate Dev Environment 🧪"
+        working-directory: infra/environments/dev
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  unit-tests:
+    name: "Unit Tests"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: "Checkout code 🛎️"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Setup .NET 🟣"
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: "Cache NuGet packages 📦"
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
       - name: "Restore dependencies 📦"
-        run: dotnet restore MediaIngestionApi.slnx
-
-      - name: "Build Solution 🔨"
-        run: dotnet build MediaIngestionApi.slnx --no-restore --configuration Release
+        run: dotnet restore tests/MediaIngestionApi.UnitTests/MediaIngestionApi.UnitTests.csproj
 
       - name: "Run Unit Tests 🧪"
-        run: dotnet test tests/MediaIngestionApi.UnitTests/MediaIngestionApi.UnitTests.csproj --no-build --configuration Release --filter "Category=Unit" ${{ env.COVERAGE_ARGS }}
+        run: |
+          dotnet test tests/MediaIngestionApi.UnitTests/MediaIngestionApi.UnitTests.csproj \
+            --no-restore \
+            --configuration Release \
+            --filter "Category=Unit" \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/UnitTests \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: "Upload Unit Tests Coverage 📤"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unit-test-coverage
+          path: ./TestResults/UnitTests/**/coverage.opencover.xml
+          retention-days: 1
+
+  integration-tests:
+    name: "Integration Tests"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+    steps:
+      - name: "Checkout code 🛎️"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "Setup .NET 🟣"
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: "Cache NuGet packages 📦"
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: "Restore dependencies 📦"
+        run: dotnet restore tests/MediaIngestionApi.IntegrationTests/MediaIngestionApi.IntegrationTests.csproj
 
       - name: "Run Integration Tests 🔗"
-        run: dotnet test tests/MediaIngestionApi.IntegrationTests/MediaIngestionApi.IntegrationTests.csproj --no-build --configuration Release --filter "Category=Integration" ${{ env.COVERAGE_ARGS }}
+        run: |
+          dotnet test tests/MediaIngestionApi.IntegrationTests/MediaIngestionApi.IntegrationTests.csproj \
+            --no-restore \
+            --configuration Release \
+            --filter "Category=Integration" \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/IntegrationTests \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: "Upload Integration Tests Coverage 📤"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: integration-test-coverage
+          path: ./TestResults/IntegrationTests/**/coverage.opencover.xml
+          retention-days: 1
+
+  docker-build:
+    name: "Docker Native AOT Build Check"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: [unit-tests, integration-tests]
+
+    steps:
+      - name: "Checkout code 🛎️"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "Setup Docker Buildx 🐳"
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
         with:
-          # Allows Docker Buildx to access the localhost network (LocalStack)
           driver-opts: network=host
 
       - name: "Docker Build Check (Dry Run) 🏗️"
@@ -49,6 +182,5 @@ jobs:
           push: false
           tags: media-ingestion-api:${{ env.IMAGE_TAG }}
           platforms: linux/amd64
-          # Defines a shared scope so the CD workflow can find this cache
           cache-from: type=gha,scope=lambda-aot-build
           cache-to: type=gha,mode=max,scope=lambda-aot-build
