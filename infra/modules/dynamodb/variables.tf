@@ -18,6 +18,12 @@ variable "environment" {
   }
 }
 
+variable "enable_point_in_time_recovery" {
+  type        = bool
+  default     = false
+  description = "Enable Point-in-Time Recovery (PITR) continuous backups for DynamoDB."
+}
+
 variable "tags" {
   type        = map(string)
   default     = {}
