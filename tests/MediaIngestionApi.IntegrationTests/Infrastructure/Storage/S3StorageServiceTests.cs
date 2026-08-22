@@ -10,7 +10,7 @@ namespace MediaIngestionApi.IntegrationTests.Infrastructure.Storage;
 public class S3StorageServiceTests
 {
     private readonly AmazonS3Client _s3Client;
-    
+
     private readonly S3StorageService _sut;
 
     public S3StorageServiceTests(IntegrationTestFixture fixture)
@@ -43,11 +43,11 @@ public class S3StorageServiceTests
         // Extracts the dynamically generated Key to fetch directly from LocalStack
         AmazonS3Uri s3Uri = new(s3UrlResult);
         string expectedS3Key = s3Uri.Key;
-        
+
         // Assert 2: Fetch object metadata directly from the real S3 in LocalStack to ensure the file exists
         GetObjectMetadataResponse? s3ObjectMetadata = await _s3Client.GetObjectMetadataAsync(
-            IntegrationTestFixture.TargetBucketName, 
-            expectedS3Key, 
+            IntegrationTestFixture.TargetBucketName,
+            expectedS3Key,
             TestContext.Current.CancellationToken);
 
         Assert.NotNull(s3ObjectMetadata);

@@ -12,7 +12,7 @@ public class IntegrationTestFixture : IAsyncLifetime
 
     public AmazonS3Client? S3Client { get; private set; }
     public AmazonDynamoDBClient? DynamoClient { get; private set; }
-    
+
     public LocalStackContainer LocalStack { get; } = new LocalStackBuilder("localstack/localstack:2026.06.0")
         .WithEnvironment("LOCALSTACK_AUTH_TOKEN", Environment.GetEnvironmentVariable("LOCALSTACK_AUTH_TOKEN"))
         .Build();
