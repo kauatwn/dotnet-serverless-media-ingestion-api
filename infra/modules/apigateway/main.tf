@@ -1,7 +1,8 @@
 # API Gateway (REST API)
 resource "aws_api_gateway_rest_api" "this" {
-  name        = var.api_name
-  description = "Serverless REST API for image processing (${var.environment})"
+  name               = var.api_name
+  description        = "Serverless REST API for image processing (${var.environment})"
+  binary_media_types = var.binary_media_types
 
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -49,7 +50,7 @@ resource "aws_lambda_permission" "this" {
   function_name = var.lambda_function_name
   principal     = "apigateway.amazonaws.com"
 
-  source_arn = "${aws_api_gateway_rest_api.this.execution_arn}/${var.stage_name}/${aws_api_gateway_method.post_images.http_method}/${aws_api_gateway_resource.images.path_part}"
+  source_arn = "${aws_api_gateway_rest_api.this.execution_arn}/*/${aws_api_gateway_method.post_images.http_method}/${aws_api_gateway_resource.images.path_part}"
 }
 
 # API Deployment

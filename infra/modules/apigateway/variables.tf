@@ -39,6 +39,12 @@ variable "lambda_function_name" {
   }
 }
 
+variable "binary_media_types" {
+  type        = list(string)
+  default     = []
+  description = "List of binary media types supported by the REST API."
+}
+
 variable "environment" {
   type        = string
   description = "Target deployment environment (e.g., dev, staging, prod)."
