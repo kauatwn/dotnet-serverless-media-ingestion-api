@@ -61,6 +61,28 @@ variable "timeout" {
   }
 }
 
+variable "tracing_mode" {
+  type        = string
+  default     = "PassThrough"
+  description = "Tracing mode for AWS X-Ray (PassThrough or Active)."
+
+  validation {
+    condition     = contains(["PassThrough", "Active"], var.tracing_mode)
+    error_message = "The tracing_mode must be either 'PassThrough' or 'Active'."
+  }
+}
+
+variable "log_retention_in_days" {
+  type        = number
+  default     = 14
+  description = "Retention period in days for Lambda CloudWatch log group."
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653], var.log_retention_in_days)
+    error_message = "The log_retention_in_days must be a valid CloudWatch retention period in days."
+  }
+}
+
 variable "bucket_name" {
   type        = string
   description = "The name of the S3 bucket for image processing."
