@@ -23,7 +23,7 @@ public partial class Function(ILogger<Function> logger, UploadImageUseCase uploa
     public static async Task Main()
     {
         ServiceCollection services = new();
-        
+
         services.AddLogging(builder => builder.AddLambdaLogger());
         services.AddInfrastructure();
         services.AddTransient<UploadImageUseCase>();
@@ -51,7 +51,7 @@ public partial class Function(ILogger<Function> logger, UploadImageUseCase uploa
         try
         {
             UploadImageRequest? uploadRequest = JsonSerializer.Deserialize<UploadImageRequest>(
-                request.Body, 
+                request.Body,
                 LambdaFunctionJsonSerializerContext.Default.UploadImageRequest);
 
             if (uploadRequest == null || string.IsNullOrEmpty(uploadRequest.Base64Image))

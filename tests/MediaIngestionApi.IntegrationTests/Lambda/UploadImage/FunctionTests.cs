@@ -24,7 +24,7 @@ public class FunctionTests
     private readonly AmazonDynamoDBClient _dynamoClient;
 
     private readonly Function _sut;
-    
+
     public FunctionTests(IntegrationTestFixture fixture)
     {
         _s3Client = fixture.S3Client ?? throw new InvalidOperationException("The AmazonS3Client dependency in the test fixture was not initialized. Ensure LocalStack started successfully.");
@@ -34,7 +34,7 @@ public class FunctionTests
         DynamoDbRepository repository = new(_dynamoClient);
 
         UploadImageUseCase useCase = new(storage, repository, NullLogger<UploadImageUseCase>.Instance);
-        
+
         _sut = new Function(NullLogger<Function>.Instance, useCase);
     }
 
@@ -44,14 +44,14 @@ public class FunctionTests
         // Arrange
         const string fileName = "integration-test.png";
         const string base64Image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
-        
+
         UploadImageRequest requestPayload = new(fileName, "image/png", base64Image);
-        
+
         APIGatewayProxyRequest request = new()
         {
             Body = JsonSerializer.Serialize(requestPayload, LambdaFunctionJsonSerializerContext.Default.UploadImageRequest)
         };
-        
+
         TestLambdaContext context = new();
 
         // Act
@@ -61,10 +61,10 @@ public class FunctionTests
         Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
         UploadImageResponse? responseBody = JsonSerializer.Deserialize<UploadImageResponse>(response.Body, LambdaFunctionJsonSerializerContext.Default.UploadImageResponse);
-            
+
         Assert.NotNull(responseBody);
         Assert.NotEqual(string.Empty, responseBody.ImageId);
-        
+
         string generatedImageId = responseBody.ImageId;
 
         // Assert 2: DynamoDB Validation
@@ -72,14 +72,14 @@ public class FunctionTests
         {
             { "imageId", new AttributeValue { S = generatedImageId } }
         }, TestContext.Current.CancellationToken);
-        
+
         Assert.True(dynamoItem.IsItemSet, "Metadata record was not found inside the DynamoDB engine table.");
         Assert.Equal(fileName, dynamoItem.Item["fileName"].S);
 
         // Assert 3: S3 Validation
         string expectedS3Key = dynamoItem.Item["s3Url"].S.Replace("s3://integration-test-bucket/", "");
         GetObjectMetadataResponse? s3Object = await _s3Client.GetObjectMetadataAsync("integration-test-bucket", expectedS3Key, TestContext.Current.CancellationToken);
-        
+
         Assert.NotNull(s3Object);
         Assert.Equal("image/png", s3Object.Headers.ContentType);
     }
@@ -101,7 +101,7 @@ public class FunctionTests
         // Assert
         Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
         ErrorResponse? errorBody = JsonSerializer.Deserialize<ErrorResponse>(response.Body, LambdaFunctionJsonSerializerContext.Default.ErrorResponse);
-        
+
         Assert.NotNull(errorBody);
         Assert.NotEmpty(errorBody.Error);
     }
@@ -119,7 +119,7 @@ public class FunctionTests
         // Assert
         Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
         ErrorResponse? errorBody = JsonSerializer.Deserialize<ErrorResponse>(response.Body, LambdaFunctionJsonSerializerContext.Default.ErrorResponse);
-        
+
         Assert.NotNull(errorBody);
         Assert.NotEmpty(errorBody.Error);
     }
