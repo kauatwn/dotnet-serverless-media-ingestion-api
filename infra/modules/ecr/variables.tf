@@ -8,6 +8,23 @@ variable "ecr_repository_name" {
   }
 }
 
+variable "image_tag_mutability" {
+  type        = string
+  default     = "IMMUTABLE"
+  description = "The tag mutability setting for the repository (MUTABLE or IMMUTABLE)."
+
+  validation {
+    condition     = contains(["MUTABLE", "IMMUTABLE"], var.image_tag_mutability)
+    error_message = "The image_tag_mutability must be either 'MUTABLE' or 'IMMUTABLE'."
+  }
+}
+
+variable "scan_on_push" {
+  type        = bool
+  default     = true
+  description = "Indicates whether images are scanned after being pushed to the repository."
+}
+
 variable "environment" {
   type        = string
   description = "Target deployment environment (e.g., dev, staging, prod)."

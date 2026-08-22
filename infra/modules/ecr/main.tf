@@ -1,10 +1,11 @@
 # Amazon ECR Repository for container images
 resource "aws_ecr_repository" "this" {
   name                 = var.ecr_repository_name
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = var.image_tag_mutability
+  force_delete         = var.environment == "dev" ? true : false
 
   image_scanning_configuration {
-    scan_on_push = false
+    scan_on_push = var.scan_on_push
   }
 
   tags = merge(
@@ -17,18 +18,18 @@ resource "aws_ecr_repository" "this" {
   )
 }
 
-# ECR Lifecycle Policy (Keep last 5 untagged images)
+# ECR Lifecycle Policy (Keep last 10 untagged images)
 resource "aws_ecr_lifecycle_policy" "this" {
   repository = aws_ecr_repository.this.name
 
   policy = jsonencode({
     rules = [{
       rulePriority = 1
-      description  = "Expire untagged images older than 5 counts"
+      description  = "Expire untagged images older than 10 counts"
       selection = {
         tagStatus   = "untagged"
         countType   = "imageCountMoreThan"
-        countNumber = 5
+        countNumber = 10
       }
       action = {
         type = "expire"
