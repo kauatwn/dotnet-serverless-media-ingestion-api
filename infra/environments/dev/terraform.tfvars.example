@@ -2,6 +2,7 @@ aws_region          = "us-east-1"
 environment         = "dev"
 project_name        = "mediaingestionapi"
 localstack_endpoint = "http://127.0.0.1:4566"
+stage_name          = "local"
 lambda_architecture = "x86_64"
 image_tag           = "latest"
 

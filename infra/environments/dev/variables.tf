@@ -42,6 +42,17 @@ variable "localstack_endpoint" {
   }
 }
 
+variable "stage_name" {
+  type        = string
+  default     = "local"
+  description = "Deployment stage name for API Gateway."
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9_]{1,128}$", var.stage_name))
+    error_message = "The stage_name must be alphanumeric or underscores and 1 to 128 characters."
+  }
+}
+
 variable "lambda_architecture" {
   type        = string
   default     = "x86_64"

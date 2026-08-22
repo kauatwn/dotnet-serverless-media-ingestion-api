@@ -45,9 +45,3 @@ output "lambda_function_name" {
   description = "Name of the provisioned Lambda function."
   value       = module.lambda.lambda_function_name
 }
-
-output "vpc_id" {
-  type        = string
-  description = "ID of the dynamically resolved default VPC."
-  value       = data.aws_vpc.default.id
-}
