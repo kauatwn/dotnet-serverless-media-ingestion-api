@@ -53,6 +53,56 @@ resource "aws_lambda_permission" "this" {
   source_arn = "${aws_api_gateway_rest_api.this.execution_arn}/*/${aws_api_gateway_method.post_images.http_method}/${aws_api_gateway_resource.images.path_part}"
 }
 
+# HTTP Method (OPTIONS /images - CORS pre-flight)
+resource "aws_api_gateway_method" "options_images" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.images.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# Mock Integration for OPTIONS
+resource "aws_api_gateway_integration" "options_images" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.images.id
+  http_method = aws_api_gateway_method.options_images.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+# Method Response for OPTIONS (200 OK)
+resource "aws_api_gateway_method_response" "options_images_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.images.id
+  http_method = aws_api_gateway_method.options_images.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+# Integration Response for OPTIONS (200 OK)
+resource "aws_api_gateway_integration_response" "options_images_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.images.id
+  http_method = aws_api_gateway_method.options_images.http_method
+  status_code = aws_api_gateway_method_response.options_images_200.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.options_images]
+}
+
 # API Deployment
 resource "aws_api_gateway_deployment" "this" {
   rest_api_id = aws_api_gateway_rest_api.this.id
@@ -62,12 +112,17 @@ resource "aws_api_gateway_deployment" "this" {
       aws_api_gateway_resource.images.id,
       aws_api_gateway_method.post_images.id,
       aws_api_gateway_integration.this.id,
+      aws_api_gateway_method.options_images.id,
+      aws_api_gateway_integration.options_images.id,
+      aws_api_gateway_integration_response.options_images_200.id
     ]))
   }
 
   depends_on = [
     aws_api_gateway_integration.this,
-    aws_lambda_permission.this
+    aws_lambda_permission.this,
+    aws_api_gateway_integration.options_images,
+    aws_api_gateway_integration_response.options_images_200
   ]
 
   lifecycle {
