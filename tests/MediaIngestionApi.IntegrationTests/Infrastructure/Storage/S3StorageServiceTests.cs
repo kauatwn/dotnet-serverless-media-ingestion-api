@@ -25,16 +25,16 @@ public class S3StorageServiceTests
         _sut = new S3StorageService(_s3Client);
     }
 
-    [Fact(DisplayName = "UploadBase64ImageAsync should upload file correctly to S3 and return the expected S3 URI pattern")]
-    public async Task UploadBase64ImageAsync_ShouldUploadCorrectly_AndReturnS3Url()
+    [Fact(DisplayName = "UploadImageAsync should upload file correctly to S3 and return the expected S3 URI pattern")]
+    public async Task UploadImageAsync_ShouldUploadCorrectly_AndReturnS3Url()
     {
         // Arrange
-        const string validBase64Image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+        byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=");
         const string fileName = "unit-test-pic.png";
         const string contentType = "image/png";
 
         // Act
-        string s3UrlResult = await _sut.UploadBase64ImageAsync(validBase64Image, fileName, contentType);
+        string s3UrlResult = await _sut.UploadImageAsync(imageBytes, fileName, contentType, TestContext.Current.CancellationToken);
 
         // Assert 1: Validate if the returned URL pattern follows the business rules
         Assert.NotNull(s3UrlResult);
@@ -52,5 +52,11 @@ public class S3StorageServiceTests
 
         Assert.NotNull(s3ObjectMetadata);
         Assert.Equal(contentType, s3ObjectMetadata.Headers.ContentType);
+
+        // Act & Assert 3: Test DeleteImageAsync (Compensatory rollback)
+        await _sut.DeleteImageAsync(s3UrlResult, TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<AmazonS3Exception>(() =>
+            _s3Client.GetObjectMetadataAsync(IntegrationTestFixture.TargetBucketName, expectedS3Key, TestContext.Current.CancellationToken));
     }
 }
