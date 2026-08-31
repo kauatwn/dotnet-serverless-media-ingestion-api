@@ -6,7 +6,7 @@ using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
-using MediaIngestionApi.Core.Models;
+using MediaIngestionApi.Core.Entities;
 using MediaIngestionApi.Core.UseCases;
 using MediaIngestionApi.Infrastructure.Extensions;
 using MediaIngestionApi.Lambda.UploadImage.Contracts;
@@ -18,13 +18,21 @@ namespace MediaIngestionApi.Lambda.UploadImage;
 
 public partial class Function(ILogger<Function> logger, UploadImageUseCase uploadImageUseCase)
 {
-    private static readonly Dictionary<string, string> JsonHeaders = new() { { "Content-Type", "application/json" } };
+    private static readonly Dictionary<string, string> JsonHeaders = new()
+    {
+        { "Content-Type", "application/json" },
+        { "Access-Control-Allow-Origin", "*" },
+        { "Access-Control-Allow-Headers", "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token" },
+        { "Access-Control-Allow-Methods", "POST,OPTIONS" },
+        { "X-Content-Type-Options", "nosniff" }
+    };
 
     public static async Task Main()
     {
         ServiceCollection services = new();
 
         services.AddLogging(builder => builder.AddLambdaLogger());
+        services.AddSingleton(TimeProvider.System);
         services.AddInfrastructure();
         services.AddTransient<UploadImageUseCase>();
 
@@ -50,9 +58,7 @@ public partial class Function(ILogger<Function> logger, UploadImageUseCase uploa
 
         try
         {
-            UploadImageRequest? uploadRequest = JsonSerializer.Deserialize<UploadImageRequest>(
-                request.Body,
-                LambdaFunctionJsonSerializerContext.Default.UploadImageRequest);
+            UploadImageRequest? uploadRequest = JsonSerializer.Deserialize<UploadImageRequest>(request.Body, LambdaFunctionJsonSerializerContext.Default.UploadImageRequest);
 
             if (uploadRequest == null || string.IsNullOrEmpty(uploadRequest.Base64Image))
             {
@@ -64,6 +70,11 @@ public partial class Function(ILogger<Function> logger, UploadImageUseCase uploa
             UploadImageResponse responseBody = new(metadata.ImageId, metadata.S3Url, metadata.SizeInBytes, metadata.UploadDate);
 
             return CreateResponse(HttpStatusCode.OK, responseBody, LambdaFunctionJsonSerializerContext.Default.UploadImageResponse);
+        }
+        catch (ArgumentException argEx)
+        {
+            LogBadRequest(logger, argEx.Message);
+            return CreateResponse(HttpStatusCode.BadRequest, new ErrorResponse(argEx.Message), LambdaFunctionJsonSerializerContext.Default.ErrorResponse);
         }
         catch (Exception ex)
         {
