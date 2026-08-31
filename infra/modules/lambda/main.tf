@@ -58,7 +58,8 @@ resource "aws_iam_role_policy" "this" {
         Effect = "Allow"
         Action = [
           "s3:PutObject",
-          "s3:GetObject"
+          "s3:GetObject",
+          "s3:DeleteObject"
         ]
         Resource = "${var.bucket_arn}/*"
       },
