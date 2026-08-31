@@ -5,6 +5,7 @@
     <File Path="infra\environments\dev\main.tf" />
     <File Path="infra\environments\dev\outputs.tf" />
     <File Path="infra\environments\dev\providers.tf" />
+    <File Path="infra\environments\dev\terraform.tf" />
     <File Path="infra\environments\dev\terraform.tfvars" />
     <File Path="infra\environments\dev\terraform.tfvars.example" />
     <File Path="infra\environments\dev\variables.tf" />
