@@ -97,17 +97,14 @@ jobs:
           dotnet test tests/MediaIngestionApi.UnitTests/MediaIngestionApi.UnitTests.csproj \
             --no-restore \
             --configuration Release \
-            --filter "Category=Unit" \
             --verbosity normal \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults/UnitTests \
-            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+            -- --coverage --coverage-output-format cobertura --coverage-output ./TestResults/UnitTests/coverage.cobertura.xml
 
       - name: "Upload Unit Tests Coverage 📤"
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: unit-test-coverage
-          path: ./TestResults/UnitTests/**/coverage.opencover.xml
+          path: ./TestResults/UnitTests/**/coverage.cobertura.xml
           retention-days: 1
 
   integration-tests:
@@ -144,17 +141,14 @@ jobs:
           dotnet test tests/MediaIngestionApi.IntegrationTests/MediaIngestionApi.IntegrationTests.csproj \
             --no-restore \
             --configuration Release \
-            --filter "Category=Integration" \
             --verbosity normal \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults/IntegrationTests \
-            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+            -- --coverage --coverage-output-format cobertura --coverage-output ./TestResults/IntegrationTests/coverage.cobertura.xml
 
       - name: "Upload Integration Tests Coverage 📤"
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: integration-test-coverage
-          path: ./TestResults/IntegrationTests/**/coverage.opencover.xml
+          path: ./TestResults/IntegrationTests/**/coverage.cobertura.xml
           retention-days: 1
 
   docker-build:
