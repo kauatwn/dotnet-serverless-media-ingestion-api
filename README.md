@@ -12,7 +12,7 @@ The processing flow works in an orchestrated, synchronous manner with strict iso
 
 - **Synchronous Edge Interception:** HTTP traffic is received and validated by **AWS API Gateway**, which acts as the central and synchronous computation trigger through `AWS_PROXY` integrations.
 - **Ultra-Low Latency Computing (Native AOT):** The **AWS Lambda** function was developed using C# 14 and **.NET 10**, compiled natively via _Ahead-of-Time (AOT)_. By removing the JIT compiler and the heavy _runtime_ infrastructure from the container, cold start time is reduced to milliseconds.
-- **Clean Architecture (Ports and Adapters):** The application core strictly applies dependency inversion. The `ImageProcessor.Core` layer defines the ports (`IStorageService`, `IMetadataRepository`), ensuring that the domain and image validation logic remains entirely decoupled from physical AWS SDKs (`AWSSDK.S3` and `AWSSDK.DynamoDB`), facilitating isolated unit testing.
+- **Clean Architecture (Ports and Adapters):** The application core strictly applies dependency inversion. The `MediaIngestionApi.Core` layer defines the ports (`IStorageService`, `IMetadataRepository`), ensuring that the domain and image validation logic remains entirely decoupled from physical AWS SDKs (`AWSSDK.S3` and `AWSSDK.DynamoDB`), facilitating isolated unit testing.
 - **Segregated and Distributed Persistence:** The image binary (received in Base64 format) is decoded and stored durably and immutably in **Amazon S3**. Simultaneously, technical indexing and structured media metadata are persisted at high speed in **Amazon DynamoDB**.
 
 ## 3. Resilience Engineering and Fault Tolerance
@@ -24,7 +24,7 @@ Synchronous and serverless operations require defensive guarantees coupled with 
 | **Initialization Bottleneck** | _Cold Starts_ causing timeouts and SLA breaches in concurrent requests.                     | Native Compilation (Native AOT)     | Optimization of the executable binary in the Docker _multi-stage build_, eliminating the reflection overhead of the traditional CLR.                                    |
 | **DynamoDB Persistence**      | Transient network errors or throttling due to simultaneous write spikes.                    | Retry with Exponential Backoff      | Configuration of native resilience policies in the DynamoDB client to retry with progressive delays.                                                                    |
 | **Write Consistency**         | Failure to write metadata to the database after the image has been successfully sent to S3. | Compensatory Transaction / Rollback | Defensive block in `UploadImageUseCase`: if DynamoDB rejects the insertion, an explicit object deletion command is triggered in S3 to prevent orphaned files.           |
-| **IAM Scope Leakage**         | Exploitation of security breaches to access data from other contexts in the cloud account.  | Least Privilege IAM Policies        | IAM rules attached to the Lambda role restrict access solely to `PutObject` and `PutItem` actions specifically on the bucket and table ARNs created in the environment. |
+| **IAM Scope Leakage**         | Exploitation of security breaches to access data from other contexts in the cloud account.  | Least Privilege IAM Policies        | IAM rules attached to the Lambda role restrict access solely to `PutObject`, `GetObject`, `DeleteObject`, and `PutItem` actions specifically on the bucket and table ARNs created in the environment. |
 
 ## 4. Architectural Decisions and FinOps Approach
 
