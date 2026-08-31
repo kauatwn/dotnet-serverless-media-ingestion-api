@@ -1,7 +1,7 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
+using MediaIngestionApi.Core.Entities;
 using MediaIngestionApi.Core.Interfaces;
-using MediaIngestionApi.Core.Models;
 
 namespace MediaIngestionApi.Infrastructure.Repositories;
 
@@ -10,7 +10,7 @@ public sealed class DynamoDbRepository(IAmazonDynamoDB dynamoDbClient) : IMetada
     private readonly string _tableName = Environment.GetEnvironmentVariable("TABLE_NAME")
         ?? throw new InvalidOperationException("The 'TABLE_NAME' environment variable is not configured.");
 
-    public async Task SaveMetadataAsync(ImageMetadata metadata)
+    public async Task SaveMetadataAsync(ImageMetadata metadata, CancellationToken cancellationToken = default)
     {
         PutItemRequest request = new()
         {
@@ -25,6 +25,6 @@ public sealed class DynamoDbRepository(IAmazonDynamoDB dynamoDbClient) : IMetada
             }
         };
 
-        await dynamoDbClient.PutItemAsync(request);
+        await dynamoDbClient.PutItemAsync(request, cancellationToken);
     }
 }
