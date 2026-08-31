@@ -9,7 +9,6 @@
     <File Path="infra\environments\dev\terraform.tfvars" />
     <File Path="infra\environments\dev\terraform.tfvars.example" />
     <File Path="infra\environments\dev\variables.tf" />
-    <File Path="infra\environments\dev\versions.tf" />
   </Folder>
   <Folder Name="/infra/modules/" />
   <Folder Name="/infra/modules/apigateway/">
