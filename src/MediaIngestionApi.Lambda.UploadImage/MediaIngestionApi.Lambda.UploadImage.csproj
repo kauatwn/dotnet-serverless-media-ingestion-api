@@ -14,12 +14,12 @@
         <InvariantGlobalization>true</InvariantGlobalization>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="3.0.0" />
+        <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="3.0.1" />
         <PackageReference Include="Amazon.Lambda.Logging.AspNetCore" Version="5.0.0" />
-        <PackageReference Include="Amazon.Lambda.RuntimeSupport" Version="2.1.2" />
-        <PackageReference Include="Amazon.Lambda.Core" Version="3.1.1" />
-        <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="3.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.10" />
+        <PackageReference Include="Amazon.Lambda.RuntimeSupport" Version="2.2.0" />
+        <PackageReference Include="Amazon.Lambda.Core" Version="3.3.0" />
+        <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="3.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.11" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\MediaIngestionApi.Infrastructure\MediaIngestionApi.Infrastructure.csproj" />
